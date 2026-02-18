@@ -3,14 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  ArrowRight,
-  BookOpen,
-  Hand,
-  LogOut,
-  Plus,
-  Save,
-} from "lucide-react";
+import { ArrowRight, BookOpen, Hand, LogOut, Plus, Save } from "lucide-react";
 
 type Card = {
   id: number;

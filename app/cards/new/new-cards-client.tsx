@@ -115,7 +115,10 @@ export default function NewCardsClient({ initialTargetLanguage }: Props) {
 
         <div className="mt-5 space-y-2">
           {phrases.map((value, index) => (
-            <div key={`${index}-${phrases.length}`} className="flex items-center gap-2">
+            <div
+              key={`${index}-${phrases.length}`}
+              className="flex items-center gap-2"
+            >
               <input
                 value={value}
                 onChange={(event) => updatePhrase(index, event.target.value)}
