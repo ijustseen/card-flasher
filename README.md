@@ -5,7 +5,9 @@ Simple flash card web app for learning English words and phrases.
 ## Features
 
 - Local authentication (register/login/logout)
-- Embedded SQLite database stored in `data/card-flasher.db`
+- Hybrid database support:
+  - Local development: SQLite in `data/card-flasher.db`
+  - Vercel/production: Postgres via `POSTGRES_URL` or `DATABASE_URL`
 - Main card screen with reveal behavior:
   - initial view: phrase/word
   - reveal view: translation + English description/usage context
@@ -31,6 +33,13 @@ cp .env.example .env.local
 
 ```bash
 GOOGLE_API_KEY=your_key_here
+```
+
+- For Vercel deployment, add Postgres connection string env:
+
+```bash
+POSTGRES_URL=your_postgres_connection_string
+# or DATABASE_URL=your_postgres_connection_string
 ```
 
 - Start development server:

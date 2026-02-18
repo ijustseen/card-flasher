@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     const json = await request.json();
     const { email, password } = schema.parse(json);
 
-    const user = getUserByEmail(email);
+    const user = await getUserByEmail(email);
 
     if (!user) {
       return NextResponse.json(
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const session = createSession(user.id);
+    const session = await createSession(user.id);
     const response = NextResponse.json({ ok: true });
 
     attachSessionCookie(response, session.token, session.expiresAt);

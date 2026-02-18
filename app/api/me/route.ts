@@ -23,7 +23,7 @@ function getAuthenticatedUser(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const user = getAuthenticatedUser(request);
+  const user = await getAuthenticatedUser(request);
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const user = getAuthenticatedUser(request);
+  const user = await getAuthenticatedUser(request);
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -47,7 +47,7 @@ export async function PATCH(request: NextRequest) {
     const json = await request.json();
     const { targetLanguage } = updateSchema.parse(json);
 
-    updateUserTargetLanguage(user.id, targetLanguage);
+    await updateUserTargetLanguage(user.id, targetLanguage);
 
     return NextResponse.json({ ok: true, targetLanguage });
   } catch (error) {

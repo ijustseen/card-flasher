@@ -14,13 +14,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const user = getUserBySessionToken(token);
+  const user = await getUserBySessionToken(token);
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const cards = listUserCards(user.id);
+  const cards = await listUserCards(user.id);
 
   return NextResponse.json({ cards });
 }

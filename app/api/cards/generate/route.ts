@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const user = getUserBySessionToken(token);
+  const user = await getUserBySessionToken(token);
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -37,8 +37,8 @@ export async function POST(request: NextRequest) {
       targetLanguage,
     );
 
-    createCards(user.id, generatedCards);
-    updateUserTargetLanguage(user.id, targetLanguage);
+    await createCards(user.id, generatedCards);
+    await updateUserTargetLanguage(user.id, targetLanguage);
 
     return NextResponse.json({ count: generatedCards.length });
   } catch (error) {
