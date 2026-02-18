@@ -8,7 +8,8 @@ import {
 } from "@/lib/auth";
 
 const SESSION_COOKIE = "card_flasher_session";
-const postgresUrl = process.env.POSTGRES_URL ?? process.env.DATABASE_URL ?? null;
+const postgresUrl =
+  process.env.POSTGRES_URL ?? process.env.DATABASE_URL ?? null;
 const usePostgres = Boolean(postgresUrl);
 
 export type CurrentUser = {
@@ -134,7 +135,9 @@ export async function getCurrentUserFromCookies(): Promise<CurrentUser | null> {
   return await getUserBySessionToken(token);
 }
 
-export async function getUserByEmail(email: string): Promise<DbUser | undefined> {
+export async function getUserByEmail(
+  email: string,
+): Promise<DbUser | undefined> {
   const normalizedEmail = normalizeEmail(email);
 
   if (usePostgres) {
@@ -156,9 +159,9 @@ export async function getUserByEmail(email: string): Promise<DbUser | undefined>
   }
 
   const db = await getSqliteDb();
-  return db.prepare("SELECT * FROM users WHERE email = ?").get(normalizedEmail) as
-    | DbUser
-    | undefined;
+  return db
+    .prepare("SELECT * FROM users WHERE email = ?")
+    .get(normalizedEmail) as DbUser | undefined;
 }
 
 export async function createUser(email: string, passwordHash: string) {
@@ -191,7 +194,10 @@ export async function createUser(email: string, passwordHash: string) {
   return result.lastInsertRowid as number;
 }
 
-export async function updateUserTargetLanguage(userId: number, language: string) {
+export async function updateUserTargetLanguage(
+  userId: number,
+  language: string,
+) {
   const cleanedLanguage = language.trim();
 
   if (usePostgres) {
@@ -238,16 +244,16 @@ export async function createSession(userId: number) {
   }
 
   const db = await getSqliteDb();
-  db.prepare("INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)").run(
-    token,
-    userId,
-    expiresAt,
-  );
+  db.prepare(
+    "INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)",
+  ).run(token, userId, expiresAt);
 
   return { token, expiresAt };
 }
 
-export async function getUserBySessionToken(token: string): Promise<CurrentUser | null> {
+export async function getUserBySessionToken(
+  token: string,
+): Promise<CurrentUser | null> {
   let session: DbSessionUser | undefined;
 
   if (usePostgres) {
