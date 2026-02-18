@@ -65,6 +65,20 @@ export default function CardsClient({
 
   const activeCard = cards.length > 0 ? cards[index % cards.length] : null;
 
+  function getRandomNextIndex(currentIndex: number, total: number) {
+    if (total <= 1) {
+      return currentIndex;
+    }
+
+    let nextIndex = currentIndex;
+
+    while (nextIndex === currentIndex) {
+      nextIndex = Math.floor(Math.random() * total);
+    }
+
+    return nextIndex;
+  }
+
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
@@ -225,7 +239,7 @@ export default function CardsClient({
               if (!activeCard) {
                 return;
               }
-              setIndex((value) => (value + 1) % cards.length);
+              setIndex((value) => getRandomNextIndex(value, cards.length));
               setRevealed(false);
             }}
             disabled={!activeCard}

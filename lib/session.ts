@@ -10,7 +10,8 @@ import {
 const SESSION_COOKIE = "card_flasher_session";
 const postgresUrl =
   process.env.POSTGRES_URL ?? process.env.DATABASE_URL ?? null;
-const usePostgres = Boolean(postgresUrl);
+const MISSING_DB_ENV_MESSAGE =
+  "Missing DATABASE_URL/POSTGRES_URL. This project uses Neon Postgres only.";
 
 export type CurrentUser = {
   id: number;
@@ -61,10 +62,18 @@ function getPostgresClient() {
   return global.__cardFlasherPostgresClient;
 }
 
-async function ensurePostgresSchema() {
-  if (!usePostgres) {
-    return;
+export function isDatabaseConfigured() {
+  return Boolean(postgresUrl);
+}
+
+function assertDatabaseConfigured() {
+  if (!postgresUrl) {
+    throw new Error(MISSING_DB_ENV_MESSAGE);
   }
+}
+
+async function ensurePostgresSchema() {
+  assertDatabaseConfigured();
 
   if (!global.__cardFlasherPostgresReady) {
     const sql = getPostgresClient();
@@ -111,11 +120,6 @@ async function ensurePostgresSchema() {
   await global.__cardFlasherPostgresReady;
 }
 
-async function getSqliteDb() {
-  const sqliteModule = await import("@/lib/db");
-  return sqliteModule.db;
-}
-
 export function getSessionCookieName() {
   return SESSION_COOKIE;
 }
@@ -139,59 +143,39 @@ export async function getUserByEmail(
   email: string,
 ): Promise<DbUser | undefined> {
   const normalizedEmail = normalizeEmail(email);
+  await ensurePostgresSchema();
+  const sql = getPostgresClient();
 
-  if (usePostgres) {
-    await ensurePostgresSchema();
-    const sql = getPostgresClient();
-
-    if (!sql) {
-      throw new Error("Postgres client is not configured.");
-    }
-
-    const users = await sql<DbUser[]>`
-      SELECT id, email, password_hash, target_language
-      FROM users
-      WHERE email = ${normalizedEmail}
-      LIMIT 1
-    `;
-
-    return users[0];
+  if (!sql) {
+    throw new Error("Postgres client is not configured.");
   }
 
-  const db = await getSqliteDb();
-  return db
-    .prepare("SELECT * FROM users WHERE email = ?")
-    .get(normalizedEmail) as DbUser | undefined;
+  const users = await sql<DbUser[]>`
+    SELECT id, email, password_hash, target_language
+    FROM users
+    WHERE email = ${normalizedEmail}
+    LIMIT 1
+  `;
+
+  return users[0];
 }
 
 export async function createUser(email: string, passwordHash: string) {
   const normalizedEmail = normalizeEmail(email);
+  await ensurePostgresSchema();
+  const sql = getPostgresClient();
 
-  if (usePostgres) {
-    await ensurePostgresSchema();
-    const sql = getPostgresClient();
-
-    if (!sql) {
-      throw new Error("Postgres client is not configured.");
-    }
-
-    const inserted = await sql<{ id: string }[]>`
-      INSERT INTO users (email, password_hash, target_language)
-      VALUES (${normalizedEmail}, ${passwordHash}, 'Russian')
-      RETURNING id
-    `;
-
-    return Number(inserted[0].id);
+  if (!sql) {
+    throw new Error("Postgres client is not configured.");
   }
 
-  const db = await getSqliteDb();
-  const result = db
-    .prepare(
-      "INSERT INTO users (email, password_hash, target_language) VALUES (?, ?, 'Russian')",
-    )
-    .run(normalizedEmail, passwordHash);
+  const inserted = await sql<{ id: string }[]>`
+    INSERT INTO users (email, password_hash, target_language)
+    VALUES (${normalizedEmail}, ${passwordHash}, 'Russian')
+    RETURNING id
+  `;
 
-  return result.lastInsertRowid as number;
+  return Number(inserted[0].id);
 }
 
 export async function updateUserTargetLanguage(
@@ -199,54 +183,34 @@ export async function updateUserTargetLanguage(
   language: string,
 ) {
   const cleanedLanguage = language.trim();
+  await ensurePostgresSchema();
+  const sql = getPostgresClient();
 
-  if (usePostgres) {
-    await ensurePostgresSchema();
-    const sql = getPostgresClient();
-
-    if (!sql) {
-      throw new Error("Postgres client is not configured.");
-    }
-
-    await sql`
-      UPDATE users
-      SET target_language = ${cleanedLanguage}
-      WHERE id = ${userId}
-    `;
-    return;
+  if (!sql) {
+    throw new Error("Postgres client is not configured.");
   }
 
-  const db = await getSqliteDb();
-  db.prepare("UPDATE users SET target_language = ? WHERE id = ?").run(
-    cleanedLanguage,
-    userId,
-  );
+  await sql`
+    UPDATE users
+    SET target_language = ${cleanedLanguage}
+    WHERE id = ${userId}
+  `;
 }
 
 export async function createSession(userId: number) {
   const token = createSessionToken();
   const expiresAt = getSessionExpiryMs();
+  await ensurePostgresSchema();
+  const sql = getPostgresClient();
 
-  if (usePostgres) {
-    await ensurePostgresSchema();
-    const sql = getPostgresClient();
-
-    if (!sql) {
-      throw new Error("Postgres client is not configured.");
-    }
-
-    await sql`
-      INSERT INTO sessions (token, user_id, expires_at)
-      VALUES (${token}, ${userId}, ${expiresAt})
-    `;
-
-    return { token, expiresAt };
+  if (!sql) {
+    throw new Error("Postgres client is not configured.");
   }
 
-  const db = await getSqliteDb();
-  db.prepare(
-    "INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)",
-  ).run(token, userId, expiresAt);
+  await sql`
+    INSERT INTO sessions (token, user_id, expires_at)
+    VALUES (${token}, ${userId}, ${expiresAt})
+  `;
 
   return { token, expiresAt };
 }
@@ -254,37 +218,21 @@ export async function createSession(userId: number) {
 export async function getUserBySessionToken(
   token: string,
 ): Promise<CurrentUser | null> {
-  let session: DbSessionUser | undefined;
+  await ensurePostgresSchema();
+  const sql = getPostgresClient();
 
-  if (usePostgres) {
-    await ensurePostgresSchema();
-    const sql = getPostgresClient();
-
-    if (!sql) {
-      throw new Error("Postgres client is not configured.");
-    }
-
-    const rows = await sql<DbSessionUser[]>`
-      SELECT users.id, users.email, users.target_language, sessions.expires_at
-      FROM sessions
-      INNER JOIN users ON users.id = sessions.user_id
-      WHERE sessions.token = ${token}
-      LIMIT 1
-    `;
-    session = rows[0];
-  } else {
-    const db = await getSqliteDb();
-    session = db
-      .prepare(
-        `
-      SELECT users.id, users.email, users.target_language, sessions.expires_at
-      FROM sessions
-      INNER JOIN users ON users.id = sessions.user_id
-      WHERE sessions.token = ?
-      `,
-      )
-      .get(token) as DbSessionUser | undefined;
+  if (!sql) {
+    throw new Error("Postgres client is not configured.");
   }
+
+  const rows = await sql<DbSessionUser[]>`
+    SELECT users.id, users.email, users.target_language, sessions.expires_at
+    FROM sessions
+    INNER JOIN users ON users.id = sessions.user_id
+    WHERE sessions.token = ${token}
+    LIMIT 1
+  `;
+  const session = rows[0];
 
   if (!session) {
     return null;
@@ -303,20 +251,14 @@ export async function getUserBySessionToken(
 }
 
 export async function deleteSession(token: string) {
-  if (usePostgres) {
-    await ensurePostgresSchema();
-    const sql = getPostgresClient();
+  await ensurePostgresSchema();
+  const sql = getPostgresClient();
 
-    if (!sql) {
-      throw new Error("Postgres client is not configured.");
-    }
-
-    await sql`DELETE FROM sessions WHERE token = ${token}`;
-    return;
+  if (!sql) {
+    throw new Error("Postgres client is not configured.");
   }
 
-  const db = await getSqliteDb();
-  db.prepare("DELETE FROM sessions WHERE token = ?").run(token);
+  await sql`DELETE FROM sessions WHERE token = ${token}`;
 }
 
 export function attachSessionCookie(
@@ -348,80 +290,44 @@ export function clearSessionCookie(response: NextResponse) {
 }
 
 export async function listUserCards(userId: number) {
-  if (usePostgres) {
-    await ensurePostgresSchema();
-    const sql = getPostgresClient();
+  await ensurePostgresSchema();
+  const sql = getPostgresClient();
 
-    if (!sql) {
-      throw new Error("Postgres client is not configured.");
-    }
-
-    const cards = await sql<DbCard[]>`
-      SELECT id, phrase, translation, description_en, created_at
-      FROM cards
-      WHERE user_id = ${userId}
-      ORDER BY id DESC
-    `;
-
-    return cards.map((card) => ({
-      ...card,
-      created_at:
-        card.created_at instanceof Date
-          ? card.created_at.toISOString()
-          : String(card.created_at),
-    }));
+  if (!sql) {
+    throw new Error("Postgres client is not configured.");
   }
 
-  const db = await getSqliteDb();
-  return db
-    .prepare(
-      "SELECT id, phrase, translation, description_en, created_at FROM cards WHERE user_id = ? ORDER BY id DESC",
-    )
-    .all(userId) as Array<{
-    id: number;
-    phrase: string;
-    translation: string;
-    description_en: string;
-    created_at: string;
-  }>;
+  const cards = await sql<DbCard[]>`
+    SELECT id, phrase, translation, description_en, created_at
+    FROM cards
+    WHERE user_id = ${userId}
+    ORDER BY id DESC
+  `;
+
+  return cards.map((card) => ({
+    ...card,
+    created_at:
+      card.created_at instanceof Date
+        ? card.created_at.toISOString()
+        : String(card.created_at),
+  }));
 }
 
 export async function createCards(
   userId: number,
   cards: Array<{ phrase: string; translation: string; descriptionEn: string }>,
 ) {
-  if (usePostgres) {
-    await ensurePostgresSchema();
-    const sql = getPostgresClient();
+  await ensurePostgresSchema();
+  const sql = getPostgresClient();
 
-    if (!sql) {
-      throw new Error("Postgres client is not configured.");
-    }
-
-    for (const card of cards) {
-      await sql`
-        INSERT INTO cards (user_id, phrase, translation, description_en)
-        VALUES (${userId}, ${card.phrase.trim()}, ${card.translation.trim()}, ${card.descriptionEn.trim()})
-      `;
-    }
-    return;
+  if (!sql) {
+    throw new Error("Postgres client is not configured.");
   }
 
-  const db = await getSqliteDb();
-  const insert = db.prepare(
-    "INSERT INTO cards (user_id, phrase, translation, description_en) VALUES (?, ?, ?, ?)",
-  );
-
-  const transaction = db.transaction(() => {
-    for (const card of cards) {
-      insert.run(
-        userId,
-        card.phrase.trim(),
-        card.translation.trim(),
-        card.descriptionEn.trim(),
-      );
-    }
-  });
-
-  transaction();
+  for (const card of cards) {
+    await sql`
+      INSERT INTO cards (user_id, phrase, translation, description_en)
+      VALUES (${userId}, ${card.phrase.trim()}, ${card.translation.trim()}, ${card.descriptionEn.trim()})
+    `;
+  }
 }

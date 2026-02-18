@@ -5,9 +5,7 @@ Simple flash card web app for learning English words and phrases.
 ## Features
 
 - Local authentication (register/login/logout)
-- Hybrid database support:
-  - Local development: SQLite in `data/card-flasher.db`
-  - Vercel/production: Postgres via `POSTGRES_URL` or `DATABASE_URL`
+- Neon Postgres database via `DATABASE_URL` or `POSTGRES_URL`
 - Main card screen with reveal behavior:
   - initial view: phrase/word
   - reveal view: translation + English description/usage context

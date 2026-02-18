@@ -11,7 +11,6 @@
   "dependencies": {
     "@google/genai": "^1.41.0",
     "bcryptjs": "^3.0.3",
-    "better-sqlite3": "^12.6.2",
     "lucide-react": "^0.574.0",
     "next": "16.1.6",
     "postgres": "^3.4.8",
@@ -21,7 +20,6 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
