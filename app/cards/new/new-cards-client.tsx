@@ -104,8 +104,8 @@ export default function NewCardsClient({ initialTargetLanguage }: Props) {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-zinc-50 to-zinc-100 p-4 text-zinc-900 md:p-8">
-      <section className="mx-auto w-full max-w-3xl rounded-2xl border border-zinc-200 bg-white/90 p-5 shadow-sm backdrop-blur md:p-8">
+    <main className="min-h-screen bg-gradient-to-b from-zinc-50 to-zinc-100 p-4 text-zinc-900 dark:from-zinc-950 dark:to-zinc-900 dark:text-zinc-100 md:p-8">
+      <section className="mx-auto w-full max-w-3xl rounded-2xl border border-zinc-200 bg-white/90 p-5 shadow-sm backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/90 md:p-8">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h1 className="flex items-center gap-2 text-2xl font-semibold">
             <PenLine size={22} />
@@ -113,14 +113,14 @@ export default function NewCardsClient({ initialTargetLanguage }: Props) {
           </h1>
           <Link
             href="/cards"
-            className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-100"
+            className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-600 dark:hover:bg-zinc-800"
           >
             <ArrowLeft size={16} />
             Back to cards
           </Link>
         </div>
 
-        <p className="mt-2 text-sm text-zinc-600">
+        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
           Enter words or phrases in English. We will generate translation and
           English explanation.
         </p>
@@ -132,7 +132,7 @@ export default function NewCardsClient({ initialTargetLanguage }: Props) {
           <input
             value={targetLanguage}
             onChange={(event) => setTargetLanguage(event.target.value)}
-            className="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-zinc-500 md:max-w-sm"
+            className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-500 dark:border-zinc-600 dark:bg-zinc-900 dark:focus:border-zinc-400 md:max-w-sm"
             placeholder="e.g. Russian"
           />
         </label>
@@ -146,14 +146,14 @@ export default function NewCardsClient({ initialTargetLanguage }: Props) {
               <input
                 value={value}
                 onChange={(event) => updatePhrase(index, event.target.value)}
-                className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-500"
+                className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-500 dark:border-zinc-600 dark:bg-zinc-900 dark:focus:border-zinc-400"
                 placeholder="Type word or phrase"
               />
 
               <button
                 type="button"
                 onClick={() => removeField(index)}
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-300 text-zinc-600 hover:bg-zinc-100"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-300 text-zinc-600 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
                 aria-label={`Remove phrase ${index + 1}`}
                 title="Remove field"
               >
@@ -167,7 +167,7 @@ export default function NewCardsClient({ initialTargetLanguage }: Props) {
           <button
             type="button"
             onClick={addField}
-            className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-100"
+            className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-600 dark:hover:bg-zinc-800"
           >
             <Plus size={16} />
             Add field

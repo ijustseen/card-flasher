@@ -344,7 +344,9 @@ export default function CardsClient({
               ))}
             </ul>
           ) : (
-            <p className="mt-1 text-zinc-500">No examples available yet.</p>
+            <p className="mt-1 text-zinc-500 dark:text-zinc-400">
+              No examples available yet.
+            </p>
           )}
 
           <button
@@ -354,7 +356,7 @@ export default function CardsClient({
               void regenerateExamples(card.id);
             }}
             disabled={regeneratingCardId === card.id}
-            className="mt-2 rounded-lg border border-zinc-300 px-2 py-1 text-xs font-medium hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-2 rounded-lg border border-zinc-300 px-2 py-1 text-xs font-medium hover:bg-zinc-100 dark:border-zinc-600 dark:hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {regeneratingCardId === card.id
               ? "Generating..."
@@ -366,16 +368,16 @@ export default function CardsClient({
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-zinc-50 to-zinc-100 p-4 text-zinc-900 md:p-8">
-      <section className="mx-auto flex max-h-[calc(100vh-2rem)] w-full max-w-4xl flex-col gap-4 overflow-y-auto md:max-h-[calc(100vh-4rem)]">
-        <header className="rounded-2xl border border-zinc-200 bg-white/90 p-4 shadow-sm backdrop-blur md:p-6">
+    <main className="relative min-h-screen bg-gradient-to-b from-zinc-50 to-zinc-100 p-4 text-zinc-900 dark:from-zinc-950 dark:to-zinc-950 dark:text-zinc-100 md:p-8">
+      <section className="mx-auto flex max-h-[calc(100vh-2rem)] w-full max-w-4xl flex-col gap-4 overflow-y-auto pb-8 md:max-h-[calc(100vh-4rem)]">
+        <header className="rounded-2xl border border-zinc-200 bg-white/90 p-4 shadow-sm backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/90 md:p-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="flex items-center gap-2 text-2xl font-semibold">
                 <BookOpen size={22} />
                 Card Flasher
               </h1>
-              <p className="text-sm text-zinc-600">
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
                 {userEmail} · Target: {initialTargetLanguage}
               </p>
             </div>
@@ -391,7 +393,7 @@ export default function CardsClient({
               <button
                 type="button"
                 onClick={logout}
-                className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-100"
+                className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-600 dark:hover:bg-zinc-800"
               >
                 <LogOut size={16} />
                 Logout
@@ -408,7 +410,7 @@ export default function CardsClient({
               className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium ${
                 mode === "random"
                   ? "border-zinc-900 bg-zinc-900 text-white"
-                  : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
+                  : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
               }`}
             >
               <Shuffle size={14} />
@@ -421,7 +423,7 @@ export default function CardsClient({
               className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium ${
                 mode === "writing"
                   ? "border-zinc-900 bg-zinc-900 text-white"
-                  : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
+                  : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
               }`}
             >
               <PenLine size={14} />
@@ -434,7 +436,7 @@ export default function CardsClient({
               className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium ${
                 mode === "list"
                   ? "border-zinc-900 bg-zinc-900 text-white"
-                  : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
+                  : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
               }`}
             >
               <List size={14} />
@@ -445,17 +447,19 @@ export default function CardsClient({
 
         <div className="min-h-0 flex-1 overflow-hidden">
           {isLoading ? (
-            <article className="h-full overflow-auto rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm md:p-8">
-              <p className="text-zinc-600">Loading cards...</p>
+            <article className="h-full overflow-auto rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 md:p-8">
+              <p className="text-zinc-600 dark:text-zinc-400">
+                Loading cards...
+              </p>
             </article>
           ) : cards.length === 0 ? (
-            <article className="h-full overflow-auto rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm md:p-8">
+            <article className="h-full overflow-auto rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 md:p-8">
               <div className="space-y-4">
                 <h2 className="flex items-center gap-2 text-xl font-semibold">
                   <BookOpen size={20} />
                   No cards yet
                 </h2>
-                <p className="text-zinc-600">
+                <p className="text-zinc-600 dark:text-zinc-400">
                   Add your first words or phrases and Card Flasher will generate
                   translation and explanation.
                 </p>
@@ -471,11 +475,11 @@ export default function CardsClient({
           ) : mode === "random" ? (
             <div className="flex h-full flex-col gap-3">
               <article
-                className="min-h-0 flex-1 cursor-pointer overflow-auto rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:shadow-md md:p-8"
+                className="min-h-0 flex-1 cursor-pointer overflow-auto rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900 md:p-8"
                 onClick={() => setRevealed((value) => !value)}
               >
                 <div className="space-y-4">
-                  <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                     <Hand size={14} />
                     Tap card to reveal
                   </p>
@@ -487,7 +491,7 @@ export default function CardsClient({
                   {activeCard && revealed ? (
                     renderCardDetails(activeCard, { showPhrase: false })
                   ) : (
-                    <p className="text-sm text-zinc-500">
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
                       Press Reveal to show translation and explanation.
                     </p>
                   )}
@@ -499,7 +503,7 @@ export default function CardsClient({
                   type="button"
                   onClick={() => setRevealed(true)}
                   disabled={!activeCard}
-                  className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-600 dark:hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Hand size={16} />
                   Reveal
@@ -526,7 +530,7 @@ export default function CardsClient({
               </div>
             </div>
           ) : mode === "writing" ? (
-            <article className="h-full overflow-auto rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm md:p-8">
+            <article className="h-full overflow-auto rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 md:p-8">
               <div className="space-y-4">
                 <div className="text-sm">
                   <p>
@@ -544,7 +548,7 @@ export default function CardsClient({
                     Type the exact phrase
                   </span>
                   {writingChecked ? (
-                    <div className="min-h-24 w-full rounded-xl border border-zinc-300 bg-white px-3 py-3 text-lg font-mono leading-8">
+                    <div className="w-full rounded-xl border border-zinc-300 bg-zinc-100 px-3 py-[11px] text-lg font-mono leading-8 dark:border-zinc-600 dark:bg-zinc-950">
                       <div>
                         {buildWritingSegments(
                           writingCard?.phrase ?? "",
@@ -563,7 +567,7 @@ export default function CardsClient({
                           Perfect match ✅
                         </p>
                       ) : (
-                        <p className="mt-2 text-sm leading-6 text-zinc-700">
+                        <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
                           <span className="font-semibold">Correct answer:</span>{" "}
                           {writingCard?.phrase}
                         </p>
@@ -576,7 +580,7 @@ export default function CardsClient({
                         setWritingInput(event.target.value);
                         setWritingChecked(false);
                       }}
-                      className="min-h-14 w-full rounded-xl border border-zinc-300 bg-white px-3 py-3 text-lg outline-none focus:border-zinc-500"
+                      className="min-h-14 w-full rounded-xl border border-zinc-300 bg-zinc-100 px-3 py-2 text-lg font-mono leading-8 outline-none focus:border-zinc-500 dark:border-zinc-600 dark:bg-zinc-950 dark:focus:border-zinc-400"
                       placeholder="Write phrase exactly"
                     />
                   )}
@@ -586,7 +590,7 @@ export default function CardsClient({
                   <button
                     type="button"
                     onClick={() => setWritingChecked(true)}
-                    className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-100"
+                    className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-600 dark:hover:bg-zinc-800"
                   >
                     Check
                   </button>
@@ -601,15 +605,15 @@ export default function CardsClient({
                   </button>
                 </div>
 
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
                   ⏎ Enter: check, then next card
                 </p>
               </div>
             </article>
           ) : (
             <section className="grid h-full min-h-0 gap-3 md:grid-cols-3">
-              <aside className="flex min-h-0 flex-col rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm md:col-span-2">
-                <p className="mb-2 text-sm font-semibold text-zinc-700">
+              <aside className="flex min-h-0 flex-col rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 md:col-span-2">
+                <p className="mb-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
                   Your cards
                 </p>
                 <div className="grid max-h-[52vh] min-h-0 flex-1 grid-cols-2 content-start gap-2 overflow-y-auto pr-1 md:max-h-[56vh] lg:grid-cols-3 xl:grid-cols-4">
@@ -621,7 +625,7 @@ export default function CardsClient({
                       className={`w-full rounded-xl border px-3 py-2 text-left text-sm ${
                         selectedCard?.id === card.id
                           ? "border-zinc-900 bg-zinc-900 text-white"
-                          : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
+                          : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
                       }`}
                     >
                       {card.phrase}
@@ -630,7 +634,7 @@ export default function CardsClient({
                 </div>
               </aside>
 
-              <article className="min-h-0 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm md:col-span-1 md:p-6">
+              <article className="min-h-0 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 md:col-span-1 md:p-6">
                 {selectedCard ? (
                   <div className="flex h-full min-h-0 flex-col">
                     <div className="min-h-0 flex-1 overflow-auto pr-1">
@@ -660,7 +664,7 @@ export default function CardsClient({
                     </div>
                   </div>
                 ) : (
-                  <p className="text-zinc-600">
+                  <p className="text-zinc-600 dark:text-zinc-400">
                     Select a card to view details.
                   </p>
                 )}
@@ -669,6 +673,29 @@ export default function CardsClient({
           )}
         </div>
       </section>
+
+      <footer className="pointer-events-auto fixed right-0 bottom-2 left-0 z-30 px-4 text-center text-xs text-zinc-500 dark:text-zinc-400 md:px-8">
+        <p>
+          by ijustseen ·{" "}
+          <a
+            href="https://github.com/ijustseen/card-flasher"
+            target="_blank"
+            rel="noreferrer"
+            className="underline hover:text-zinc-700 dark:hover:text-zinc-200"
+          >
+            GitHub
+          </a>{" "}
+          ·{" "}
+          <a
+            href="https://t.me/andr_ewtf"
+            target="_blank"
+            rel="noreferrer"
+            className="underline hover:text-zinc-700 dark:hover:text-zinc-200"
+          >
+            Telegram
+          </a>
+        </p>
+      </footer>
 
       {successMessage ? (
         <AppToast
