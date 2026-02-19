@@ -354,11 +354,13 @@ export async function createCards(
   }
 
   for (const card of cards) {
+    const phrase = card.phrase.trim();
+
     await sql`
       INSERT INTO cards (user_id, phrase, translation, description_en, examples_en)
-      VALUES (
+      SELECT
         ${userId},
-        ${card.phrase.trim()},
+        ${phrase},
         ${card.translation.trim()},
         ${card.descriptionEn.trim()},
         ${JSON.stringify(
@@ -367,6 +369,11 @@ export async function createCards(
             .filter(Boolean)
             .slice(0, 2),
         )}
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM cards
+        WHERE user_id = ${userId}
+          AND LOWER(phrase) = LOWER(${phrase})
       )
     `;
   }

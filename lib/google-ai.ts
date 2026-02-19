@@ -35,7 +35,10 @@ Task:
   3) examplesEn: exactly 2 short, natural example sentences in English
 
 Rules:
-- Keep phrase unchanged from the input.
+- Normalize each input to its base dictionary form before returning "phrase":
+  - verbs -> infinitive/base form (e.g., "went" -> "go", "running" -> "run")
+  - nouns -> singular base form when applicable
+  - short phrases -> canonical/base wording while preserving original meaning
 - descriptionEn must always be in English.
 - examplesEn must always be in English and contain exactly 2 items.
 - Return strict JSON array only. No markdown. No code fences.

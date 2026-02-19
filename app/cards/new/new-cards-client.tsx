@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Check, PenLine, Plus, X } from "lucide-react";
 import AppToast from "@/components/app-toast";
 
@@ -14,10 +14,54 @@ export default function NewCardsClient({ initialTargetLanguage }: Props) {
   const router = useRouter();
   const [targetLanguage, setTargetLanguage] = useState(initialTargetLanguage);
   const [phrases, setPhrases] = useState<string[]>([""]);
+  const [existingPhrases, setExistingPhrases] = useState<Set<string>>(
+    new Set(),
+  );
+  const [invalidPhraseIndexes, setInvalidPhraseIndexes] = useState<number[]>(
+    [],
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function normalizePhrase(value: string) {
+    return value.trim().toLocaleLowerCase();
+  }
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const response = await fetch("/api/cards", { cache: "no-store" });
+        const result = (await response.json()) as {
+          error?: string;
+          cards?: Array<{ phrase: string }>;
+        };
+
+        if (response.status === 401) {
+          router.push("/login");
+          router.refresh();
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(result.error ?? "Failed to load existing cards.");
+        }
+
+        setExistingPhrases(
+          new Set(
+            (result.cards ?? []).map((card) => normalizePhrase(card.phrase)),
+          ),
+        );
+      } catch {
+        setExistingPhrases(new Set());
+      }
+    })();
+  }, [router]);
+
   function updatePhrase(index: number, value: string) {
+    setInvalidPhraseIndexes((current) =>
+      current.filter((item) => item !== index),
+    );
+
     setPhrases((current) => {
       const next = [...current];
       next[index] = value;
@@ -30,6 +74,12 @@ export default function NewCardsClient({ initialTargetLanguage }: Props) {
   }
 
   function removeField(index: number) {
+    setInvalidPhraseIndexes((current) =>
+      current
+        .filter((item) => item !== index)
+        .map((item) => (item > index ? item - 1 : item)),
+    );
+
     setPhrases((current) => {
       if (current.length <= 1) {
         return [""];
@@ -50,13 +100,53 @@ export default function NewCardsClient({ initialTargetLanguage }: Props) {
   }
 
   async function confirmCards() {
-    const cleaned = phrases.map((item) => item.trim()).filter(Boolean);
+    const normalizedEntries = phrases
+      .map((value, index) => ({
+        index,
+        raw: value.trim(),
+        normalized: normalizePhrase(value),
+      }))
+      .filter((item) => item.raw.length > 0);
+
+    const cleaned = normalizedEntries.map((item) => item.raw);
 
     if (cleaned.length === 0) {
+      setInvalidPhraseIndexes([]);
       setError("Please add at least one phrase.");
       return;
     }
 
+    const firstIndexByPhrase = new Map<string, number>();
+    const duplicateInInputIndexes = new Set<number>();
+
+    for (const entry of normalizedEntries) {
+      const firstIndex = firstIndexByPhrase.get(entry.normalized);
+
+      if (firstIndex === undefined) {
+        firstIndexByPhrase.set(entry.normalized, entry.index);
+      } else {
+        duplicateInInputIndexes.add(firstIndex);
+        duplicateInInputIndexes.add(entry.index);
+      }
+    }
+
+    if (duplicateInInputIndexes.size > 0) {
+      setInvalidPhraseIndexes([...duplicateInInputIndexes]);
+      setError("Duplicate phrases in the form.");
+      return;
+    }
+
+    const duplicateInCardsIndexes = normalizedEntries
+      .filter((entry) => existingPhrases.has(entry.normalized))
+      .map((entry) => entry.index);
+
+    if (duplicateInCardsIndexes.length > 0) {
+      setInvalidPhraseIndexes(duplicateInCardsIndexes);
+      setError("Some phrases already exist in your cards.");
+      return;
+    }
+
+    setInvalidPhraseIndexes([]);
     setError(null);
     setIsSubmitting(true);
 
@@ -146,7 +236,11 @@ export default function NewCardsClient({ initialTargetLanguage }: Props) {
               <input
                 value={value}
                 onChange={(event) => updatePhrase(index, event.target.value)}
-                className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-500 dark:border-zinc-600 dark:bg-zinc-900 dark:focus:border-zinc-400"
+                className={`w-full rounded-xl border bg-white px-3 py-2 text-sm outline-none dark:bg-zinc-900 ${
+                  invalidPhraseIndexes.includes(index)
+                    ? "border-red-500 focus:border-red-500 dark:border-red-400 dark:focus:border-red-300"
+                    : "border-zinc-300 focus:border-zinc-500 dark:border-zinc-600 dark:focus:border-zinc-400"
+                }`}
                 placeholder="Type word or phrase"
               />
 

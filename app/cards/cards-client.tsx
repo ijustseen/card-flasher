@@ -38,6 +38,7 @@ export default function CardsClient({
   const router = useRouter();
   const [cards, setCards] = useState<Card[]>([]);
   const [mode, setMode] = useState<Mode>("random");
+  const [listQuery, setListQuery] = useState("");
   const [index, setIndex] = useState(0);
   const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
   const [writingIndex, setWritingIndex] = useState(0);
@@ -55,6 +56,7 @@ export default function CardsClient({
     null,
   );
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const writingInputRef = useRef<HTMLInputElement | null>(null);
 
   async function readJsonSafe<T>(response: Response, fallback: T): Promise<T> {
     try {
@@ -118,10 +120,31 @@ export default function CardsClient({
   }, [selectedCardId]);
 
   const activeCard = cards.length > 0 ? cards[index % cards.length] : null;
+  const normalizedListQuery = listQuery.trim().toLocaleLowerCase();
+  const filteredCards =
+    normalizedListQuery.length === 0
+      ? cards
+      : cards.filter((card) => {
+          const phrase = card.phrase.toLocaleLowerCase();
+          const translation = card.translation.toLocaleLowerCase();
+          return (
+            phrase.includes(normalizedListQuery) ||
+            translation.includes(normalizedListQuery)
+          );
+        });
   const selectedCard =
-    cards.find((card) => card.id === selectedCardId) ?? cards[0] ?? null;
+    filteredCards.find((card) => card.id === selectedCardId) ??
+    filteredCards[0] ??
+    null;
   const writingCard =
     cards.length > 0 ? cards[writingIndex % cards.length] : null;
+
+  const normalizedWritingInput = writingInput.trim().toLocaleLowerCase();
+  const normalizedWritingPhrase = writingCard?.phrase
+    .trim()
+    .toLocaleLowerCase();
+  const isWritingCorrect =
+    writingCard !== null && normalizedWritingInput === normalizedWritingPhrase;
 
   function getRandomNextIndex(currentIndex: number, total: number) {
     if (total <= 1) {
@@ -138,6 +161,8 @@ export default function CardsClient({
   }
 
   function buildWritingSegments(expected: string, actual: string) {
+    const expectedNormalized = expected.toLocaleLowerCase();
+    const actualNormalized = actual.toLocaleLowerCase();
     const expectedLength = expected.length;
     const actualLength = actual.length;
     const matrix: number[][] = Array.from({ length: expectedLength + 1 }, () =>
@@ -163,7 +188,10 @@ export default function CardsClient({
     ) {
       for (let actualIndex = 1; actualIndex <= actualLength; actualIndex += 1) {
         const substitutionCost =
-          expected[expectedIndex - 1] === actual[actualIndex - 1] ? 0 : 1;
+          expectedNormalized[expectedIndex - 1] ===
+          actualNormalized[actualIndex - 1]
+            ? 0
+            : 1;
 
         matrix[expectedIndex][actualIndex] = Math.min(
           matrix[expectedIndex - 1][actualIndex] + 1,
@@ -188,11 +216,18 @@ export default function CardsClient({
         actualIndex > 0 &&
         matrix[expectedIndex][actualIndex] ===
           matrix[expectedIndex - 1][actualIndex - 1] +
-            (expectedChar === actualChar ? 0 : 1)
+            (expectedNormalized[expectedIndex - 1] ===
+            actualNormalized[actualIndex - 1]
+              ? 0
+              : 1)
       ) {
         segments.push({
           char: actualChar,
-          tone: expectedChar === actualChar ? "good" : "bad",
+          tone:
+            expectedNormalized[expectedIndex - 1] ===
+            actualNormalized[actualIndex - 1]
+              ? "good"
+              : "bad",
         });
         expectedIndex -= 1;
         actualIndex -= 1;
@@ -367,6 +402,14 @@ export default function CardsClient({
     };
   }, [mode, writingChecked, goToNextWritingCard]);
 
+  useEffect(() => {
+    if (mode !== "writing" || writingChecked) {
+      return;
+    }
+
+    writingInputRef.current?.focus();
+  }, [mode, writingChecked, writingCard?.id]);
+
   function renderCardDetails(card: Card, options?: { showPhrase?: boolean }) {
     const showPhrase = options?.showPhrase ?? true;
 
@@ -420,8 +463,8 @@ export default function CardsClient({
   }
 
   return (
-    <main className="relative min-h-screen bg-gradient-to-b from-zinc-50 to-zinc-100 p-4 text-zinc-900 dark:from-zinc-950 dark:to-zinc-950 dark:text-zinc-100 md:p-8">
-      <section className="mx-auto flex max-h-[calc(100vh-2rem)] w-full max-w-4xl flex-col gap-4 overflow-y-auto pb-8 md:max-h-[calc(100vh-4rem)]">
+    <main className="relative flex h-screen flex-col overflow-hidden bg-gradient-to-b from-zinc-50 to-zinc-100 p-4 text-zinc-900 dark:from-zinc-950 dark:to-zinc-950 dark:text-zinc-100 md:p-8">
+      <section className="mx-auto flex h-full w-full max-w-4xl flex-1 flex-col gap-4 overflow-hidden">
         <header className="rounded-2xl border border-zinc-200 bg-white/90 p-4 shadow-sm backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/90 md:p-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
@@ -525,9 +568,9 @@ export default function CardsClient({
               </div>
             </article>
           ) : mode === "random" ? (
-            <div className="flex h-full flex-col gap-3">
+            <div className="flex flex-col gap-3">
               <article
-                className="min-h-0 flex-1 cursor-pointer overflow-auto rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900 md:p-8"
+                className="cursor-pointer overflow-auto rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900 md:p-8"
                 onClick={() => setRevealed((value) => !value)}
               >
                 <div className="space-y-4">
@@ -582,7 +625,7 @@ export default function CardsClient({
               </div>
             </div>
           ) : mode === "writing" ? (
-            <article className="h-full overflow-auto rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 md:p-8">
+            <article className="overflow-auto rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 md:p-8">
               <div className="space-y-4">
                 <div className="text-sm">
                   <p>
@@ -614,7 +657,7 @@ export default function CardsClient({
                           </span>
                         ))}
                       </div>
-                      {writingCard && writingInput === writingCard.phrase ? (
+                      {isWritingCorrect ? (
                         <p className="mt-2 text-sm leading-6 font-semibold text-emerald-700">
                           Perfect match ✅
                         </p>
@@ -627,11 +670,15 @@ export default function CardsClient({
                     </div>
                   ) : (
                     <input
+                      ref={writingInputRef}
                       value={writingInput}
                       onChange={(event) => {
                         setWritingInput(event.target.value);
                         setWritingChecked(false);
                       }}
+                      spellCheck={false}
+                      autoCorrect="off"
+                      autoCapitalize="none"
                       className="min-h-14 w-full rounded-xl border border-zinc-300 bg-zinc-100 px-3 py-2 text-lg font-mono leading-8 outline-none focus:border-zinc-500 dark:border-zinc-600 dark:bg-zinc-950 dark:focus:border-zinc-400"
                       placeholder="Write phrase exactly"
                     />
@@ -663,13 +710,19 @@ export default function CardsClient({
               </div>
             </article>
           ) : (
-            <section className="grid h-full min-h-0 gap-3 md:grid-cols-3">
-              <aside className="flex min-h-0 flex-col rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 md:col-span-2">
+            <section className="grid min-h-0 gap-3 md:h-full md:grid-cols-3 md:grid-rows-[minmax(0,1fr)]">
+              <aside className="order-2 flex min-h-0 flex-col rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 md:order-1 md:col-span-2 md:h-full">
                 <p className="mb-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
                   Your cards
                 </p>
-                <div className="grid max-h-[52vh] min-h-0 flex-1 grid-cols-2 content-start gap-2 overflow-y-auto pr-1 md:max-h-[56vh] lg:grid-cols-3 xl:grid-cols-4">
-                  {cards.map((card) => (
+                <input
+                  value={listQuery}
+                  onChange={(event) => setListQuery(event.target.value)}
+                  placeholder="Search phrase or translation"
+                  className="mb-2 w-full rounded-xl border border-zinc-300 bg-zinc-100 px-3 py-2 text-sm outline-none focus:border-zinc-500 dark:border-zinc-600 dark:bg-zinc-950 dark:focus:border-zinc-400"
+                />
+                <div className="grid min-h-0 flex-1 grid-cols-2 content-start gap-2 overflow-y-auto pr-1 lg:grid-cols-3 xl:grid-cols-4">
+                  {filteredCards.map((card) => (
                     <button
                       key={card.id}
                       type="button"
@@ -683,14 +736,23 @@ export default function CardsClient({
                       {card.phrase}
                     </button>
                   ))}
+
+                  {filteredCards.length === 0 ? (
+                    <p className="col-span-full text-sm text-zinc-500 dark:text-zinc-400">
+                      No cards found.
+                    </p>
+                  ) : null}
                 </div>
               </aside>
 
-              <article className="min-h-0 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 md:col-span-1 md:p-6">
+              <article className="order-1 min-h-0 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 md:order-2 md:col-span-1 md:h-full md:p-6">
                 {selectedCard ? (
                   <div className="flex h-full min-h-0 flex-col">
-                    <div className="min-h-0 flex-1 overflow-auto pr-1">
-                      {renderCardDetails(selectedCard, { showPhrase: true })}
+                    <h2 className="text-2xl font-semibold break-words md:text-3xl">
+                      {selectedCard.phrase}
+                    </h2>
+                    <div className="mt-2 min-h-0 flex-1 overflow-auto pr-1">
+                      {renderCardDetails(selectedCard, { showPhrase: false })}
                     </div>
                     <div className="mt-3 flex justify-end">
                       <button
@@ -726,7 +788,7 @@ export default function CardsClient({
         </div>
       </section>
 
-      <footer className="pointer-events-auto fixed right-0 bottom-2 left-0 z-30 px-4 text-center text-xs text-zinc-500 dark:text-zinc-400 md:px-8">
+      <footer className="px-1 pt-2 text-center text-xs text-zinc-500 dark:text-zinc-400">
         <p>
           by ijustseen ·{" "}
           <a
