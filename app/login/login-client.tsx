@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import AppToast from "@/components/app-toast";
 
 type Mode = "login" | "register";
 
@@ -102,12 +103,6 @@ export default function LoginClient() {
             />
           </label>
 
-          {error ? (
-            <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
-              {error}
-            </p>
-          ) : null}
-
           <button
             disabled={isLoading}
             className="w-full rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
@@ -121,6 +116,10 @@ export default function LoginClient() {
           </button>
         </form>
       </section>
+
+      {error ? (
+        <AppToast message={error} variant="error" topClassName="top-4" />
+      ) : null}
     </main>
   );
 }

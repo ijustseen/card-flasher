@@ -38,7 +38,12 @@ type DbCard = {
   phrase: string;
   translation: string;
   description_en: string;
+  examples_en: string;
   created_at: string | Date;
+};
+
+type DbCardPhrase = {
+  phrase: string;
 };
 
 declare global {
@@ -108,8 +113,14 @@ async function ensurePostgresSchema() {
           phrase TEXT NOT NULL,
           translation TEXT NOT NULL,
           description_en TEXT NOT NULL,
+          examples_en TEXT NOT NULL DEFAULT '[]',
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
+      `;
+
+      await sql`
+        ALTER TABLE cards
+        ADD COLUMN IF NOT EXISTS examples_en TEXT NOT NULL DEFAULT '[]'
       `;
 
       await sql`CREATE INDEX IF NOT EXISTS idx_cards_user_id ON cards(user_id)`;
@@ -298,14 +309,27 @@ export async function listUserCards(userId: number) {
   }
 
   const cards = await sql<DbCard[]>`
-    SELECT id, phrase, translation, description_en, created_at
+    SELECT id, phrase, translation, description_en, examples_en, created_at
     FROM cards
     WHERE user_id = ${userId}
     ORDER BY id DESC
   `;
 
   return cards.map((card) => ({
-    ...card,
+    id: card.id,
+    phrase: card.phrase,
+    translation: card.translation,
+    description_en: card.description_en,
+    examples_en: (() => {
+      try {
+        const parsed = JSON.parse(card.examples_en);
+        return Array.isArray(parsed)
+          ? parsed.filter((value) => typeof value === "string")
+          : [];
+      } catch {
+        return [];
+      }
+    })(),
     created_at:
       card.created_at instanceof Date
         ? card.created_at.toISOString()
@@ -315,7 +339,12 @@ export async function listUserCards(userId: number) {
 
 export async function createCards(
   userId: number,
-  cards: Array<{ phrase: string; translation: string; descriptionEn: string }>,
+  cards: Array<{
+    phrase: string;
+    translation: string;
+    descriptionEn: string;
+    examplesEn: string[];
+  }>,
 ) {
   await ensurePostgresSchema();
   const sql = getPostgresClient();
@@ -326,8 +355,78 @@ export async function createCards(
 
   for (const card of cards) {
     await sql`
-      INSERT INTO cards (user_id, phrase, translation, description_en)
-      VALUES (${userId}, ${card.phrase.trim()}, ${card.translation.trim()}, ${card.descriptionEn.trim()})
+      INSERT INTO cards (user_id, phrase, translation, description_en, examples_en)
+      VALUES (
+        ${userId},
+        ${card.phrase.trim()},
+        ${card.translation.trim()},
+        ${card.descriptionEn.trim()},
+        ${JSON.stringify(
+          card.examplesEn
+            .map((item) => item.trim())
+            .filter(Boolean)
+            .slice(0, 2),
+        )}
+      )
     `;
   }
+}
+
+export async function getUserCardPhrase(userId: number, cardId: number) {
+  await ensurePostgresSchema();
+  const sql = getPostgresClient();
+
+  if (!sql) {
+    throw new Error("Postgres client is not configured.");
+  }
+
+  const rows = await sql<DbCardPhrase[]>`
+    SELECT phrase
+    FROM cards
+    WHERE id = ${cardId} AND user_id = ${userId}
+    LIMIT 1
+  `;
+
+  return rows[0]?.phrase ?? null;
+}
+
+export async function updateCardExamples(
+  userId: number,
+  cardId: number,
+  examplesEn: string[],
+) {
+  await ensurePostgresSchema();
+  const sql = getPostgresClient();
+
+  if (!sql) {
+    throw new Error("Postgres client is not configured.");
+  }
+
+  await sql`
+    UPDATE cards
+    SET examples_en = ${JSON.stringify(
+      examplesEn
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .slice(0, 2),
+    )}
+    WHERE id = ${cardId} AND user_id = ${userId}
+  `;
+}
+
+export async function deleteUserCard(userId: number, cardId: number) {
+  await ensurePostgresSchema();
+  const sql = getPostgresClient();
+
+  if (!sql) {
+    throw new Error("Postgres client is not configured.");
+  }
+
+  const rows = await sql<{ id: number }[]>`
+    DELETE FROM cards
+    WHERE id = ${cardId} AND user_id = ${userId}
+    RETURNING id
+  `;
+
+  return rows.length > 0;
 }

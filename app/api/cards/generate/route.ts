@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
+import { z, ZodError } from "zod";
 import { generateCardsFromPhrases } from "@/lib/google-ai";
 import {
   createCards,
@@ -9,41 +9,66 @@ import {
 } from "@/lib/session";
 
 export const runtime = "nodejs";
+const GENERATION_BATCH_SIZE = 50;
 
 const schema = z.object({
   targetLanguage: z.string().trim().min(2).max(60),
-  phrases: z.array(z.string().trim().min(1).max(160)).min(1).max(50),
+  phrases: z.array(z.string().trim().min(1).max(160)).min(1).max(1000),
 });
 
+function chunkArray<T>(items: T[], chunkSize: number) {
+  const chunks: T[][] = [];
+
+  for (let index = 0; index < items.length; index += chunkSize) {
+    chunks.push(items.slice(index, index + chunkSize));
+  }
+
+  return chunks;
+}
+
 export async function POST(request: NextRequest) {
-  const token = getSessionTokenFromRequest(request);
-
-  if (!token) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const user = await getUserBySessionToken(token);
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
+    const token = getSessionTokenFromRequest(request);
+
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = await getUserBySessionToken(token);
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const json = await request.json();
     const { phrases, targetLanguage } = schema.parse(json);
 
-    const generatedCards = await generateCardsFromPhrases(
-      phrases,
-      targetLanguage,
-    );
+    const phraseBatches = chunkArray(phrases, GENERATION_BATCH_SIZE);
+    let totalGenerated = 0;
 
-    await createCards(user.id, generatedCards);
+    for (const phraseBatch of phraseBatches) {
+      const generatedCards = await generateCardsFromPhrases(
+        phraseBatch,
+        targetLanguage,
+      );
+
+      await createCards(user.id, generatedCards);
+      totalGenerated += generatedCards.length;
+    }
+
     await updateUserTargetLanguage(user.id, targetLanguage);
 
-    return NextResponse.json({ count: generatedCards.length });
+    return NextResponse.json({ count: totalGenerated });
   } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        { error: "Invalid input data.", details: error.issues },
+        { status: 400 },
+      );
+    }
+
     const message =
       error instanceof Error ? error.message : "Failed to generate cards.";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

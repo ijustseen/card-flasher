@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowLeft, Check, PenLine, Plus, X } from "lucide-react";
+import AppToast from "@/components/app-toast";
 
 type Props = {
   initialTargetLanguage: string;
@@ -38,6 +39,16 @@ export default function NewCardsClient({ initialTargetLanguage }: Props) {
     });
   }
 
+  function chunkPhrases(items: string[], chunkSize: number) {
+    const chunks: string[][] = [];
+
+    for (let index = 0; index < items.length; index += chunkSize) {
+      chunks.push(items.slice(index, index + chunkSize));
+    }
+
+    return chunks;
+  }
+
   async function confirmCards() {
     const cleaned = phrases.map((item) => item.trim()).filter(Boolean);
 
@@ -50,22 +61,35 @@ export default function NewCardsClient({ initialTargetLanguage }: Props) {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/cards/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phrases: cleaned, targetLanguage }),
-      });
+      const phraseBatches = chunkPhrases(cleaned, 50);
 
-      const result = (await response.json()) as { error?: string };
+      for (const batch of phraseBatches) {
+        const response = await fetch("/api/cards/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phrases: batch, targetLanguage }),
+        });
 
-      if (response.status === 401) {
-        router.push("/login");
-        router.refresh();
-        return;
-      }
+        let result: { error?: string } = {};
 
-      if (!response.ok) {
-        throw new Error(result.error ?? "Failed to generate cards.");
+        try {
+          result = (await response.json()) as { error?: string };
+        } catch {
+          result = {};
+        }
+
+        if (response.status === 401) {
+          router.push("/login");
+          router.refresh();
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            result.error ??
+              `Failed to generate cards (HTTP ${response.status}). Please try again.`,
+          );
+        }
       }
 
       router.push("/cards");
@@ -159,13 +183,11 @@ export default function NewCardsClient({ initialTargetLanguage }: Props) {
             {isSubmitting ? "Generating..." : "Confirm cards"}
           </button>
         </div>
-
-        {error ? (
-          <p className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
-          </p>
-        ) : null}
       </section>
+
+      {error ? (
+        <AppToast message={error} variant="error" topClassName="top-4" />
+      ) : null}
     </main>
   );
 }
