@@ -138,32 +138,84 @@ export default function CardsClient({
   }
 
   function buildWritingSegments(expected: string, actual: string) {
-    const segments: Array<{ char: string; tone: "good" | "bad" | "missing" }> =
-      [];
-    const maxLength = Math.max(expected.length, actual.length);
+    const expectedLength = expected.length;
+    const actualLength = actual.length;
+    const matrix: number[][] = Array.from({ length: expectedLength + 1 }, () =>
+      Array(actualLength + 1).fill(0),
+    );
 
-    for (let index = 0; index < maxLength; index += 1) {
-      const expectedChar = expected[index];
-      const actualChar = actual[index];
+    for (
+      let expectedIndex = 0;
+      expectedIndex <= expectedLength;
+      expectedIndex += 1
+    ) {
+      matrix[expectedIndex][0] = expectedIndex;
+    }
 
-      if (actualChar === undefined && expectedChar !== undefined) {
-        segments.push({ char: expectedChar, tone: "missing" });
-        continue;
-      }
+    for (let actualIndex = 0; actualIndex <= actualLength; actualIndex += 1) {
+      matrix[0][actualIndex] = actualIndex;
+    }
 
-      if (expectedChar === undefined && actualChar !== undefined) {
-        segments.push({ char: actualChar, tone: "bad" });
-        continue;
-      }
+    for (
+      let expectedIndex = 1;
+      expectedIndex <= expectedLength;
+      expectedIndex += 1
+    ) {
+      for (let actualIndex = 1; actualIndex <= actualLength; actualIndex += 1) {
+        const substitutionCost =
+          expected[expectedIndex - 1] === actual[actualIndex - 1] ? 0 : 1;
 
-      if (actualChar === expectedChar) {
-        segments.push({ char: actualChar, tone: "good" });
-      } else if (actualChar !== undefined) {
-        segments.push({ char: actualChar, tone: "bad" });
+        matrix[expectedIndex][actualIndex] = Math.min(
+          matrix[expectedIndex - 1][actualIndex] + 1,
+          matrix[expectedIndex][actualIndex - 1] + 1,
+          matrix[expectedIndex - 1][actualIndex - 1] + substitutionCost,
+        );
       }
     }
 
-    return segments;
+    const segments: Array<{ char: string; tone: "good" | "bad" | "missing" }> =
+      [];
+
+    let expectedIndex = expectedLength;
+    let actualIndex = actualLength;
+
+    while (expectedIndex > 0 || actualIndex > 0) {
+      const expectedChar = expected[expectedIndex - 1];
+      const actualChar = actual[actualIndex - 1];
+
+      if (
+        expectedIndex > 0 &&
+        actualIndex > 0 &&
+        matrix[expectedIndex][actualIndex] ===
+          matrix[expectedIndex - 1][actualIndex - 1] +
+            (expectedChar === actualChar ? 0 : 1)
+      ) {
+        segments.push({
+          char: actualChar,
+          tone: expectedChar === actualChar ? "good" : "bad",
+        });
+        expectedIndex -= 1;
+        actualIndex -= 1;
+        continue;
+      }
+
+      if (
+        actualIndex > 0 &&
+        matrix[expectedIndex][actualIndex] ===
+          matrix[expectedIndex][actualIndex - 1] + 1
+      ) {
+        segments.push({ char: actualChar, tone: "bad" });
+        actualIndex -= 1;
+        continue;
+      }
+
+      if (expectedIndex > 0) {
+        segments.push({ char: expectedChar, tone: "missing" });
+        expectedIndex -= 1;
+      }
+    }
+
+    return segments.reverse();
   }
 
   function getWritingToneClass(tone: "good" | "bad" | "missing") {
