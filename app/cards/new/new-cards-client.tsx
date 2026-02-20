@@ -10,6 +10,12 @@ type Props = {
   initialTargetLanguage: string;
 };
 
+type Group = {
+  id: number;
+  name: string;
+  cardCount: number;
+};
+
 export default function NewCardsClient({ initialTargetLanguage }: Props) {
   const router = useRouter();
   const [targetLanguage, setTargetLanguage] = useState(initialTargetLanguage);
@@ -17,6 +23,10 @@ export default function NewCardsClient({ initialTargetLanguage }: Props) {
   const [existingPhrases, setExistingPhrases] = useState<Set<string>>(
     new Set(),
   );
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([]);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [invalidPhraseIndexes, setInvalidPhraseIndexes] = useState<number[]>(
     [],
   );
@@ -30,32 +40,114 @@ export default function NewCardsClient({ initialTargetLanguage }: Props) {
   useEffect(() => {
     void (async () => {
       try {
-        const response = await fetch("/api/cards", { cache: "no-store" });
-        const result = (await response.json()) as {
+        const [cardsResponse, groupsResponse] = await Promise.all([
+          fetch("/api/cards", { cache: "no-store" }),
+          fetch("/api/groups", { cache: "no-store" }),
+        ]);
+
+        const cardsResult = (await cardsResponse.json()) as {
           error?: string;
           cards?: Array<{ phrase: string }>;
         };
 
-        if (response.status === 401) {
+        const groupsResult = (await groupsResponse.json()) as {
+          error?: string;
+          groups?: Group[];
+        };
+
+        if (cardsResponse.status === 401 || groupsResponse.status === 401) {
           router.push("/login");
           router.refresh();
           return;
         }
 
-        if (!response.ok) {
-          throw new Error(result.error ?? "Failed to load existing cards.");
+        if (!cardsResponse.ok) {
+          throw new Error(
+            cardsResult.error ?? "Failed to load existing cards.",
+          );
+        }
+
+        if (!groupsResponse.ok) {
+          throw new Error(groupsResult.error ?? "Failed to load groups.");
         }
 
         setExistingPhrases(
           new Set(
-            (result.cards ?? []).map((card) => normalizePhrase(card.phrase)),
+            (cardsResult.cards ?? []).map((card) =>
+              normalizePhrase(card.phrase),
+            ),
           ),
         );
+        setGroups(groupsResult.groups ?? []);
       } catch {
         setExistingPhrases(new Set());
+        setGroups([]);
       }
     })();
   }, [router]);
+
+  function toggleGroup(groupId: number) {
+    setSelectedGroupIds((current) =>
+      current.includes(groupId)
+        ? current.filter((item) => item !== groupId)
+        : [...current, groupId],
+    );
+  }
+
+  async function createGroupInline() {
+    const name = newGroupName.trim();
+
+    if (!name) {
+      setError("Group name is required.");
+      return;
+    }
+
+    try {
+      setIsCreatingGroup(true);
+      setError(null);
+
+      const response = await fetch("/api/groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+
+      const result = (await response.json()) as {
+        error?: string;
+        group?: Group;
+      };
+
+      if (response.status === 401) {
+        router.push("/login");
+        router.refresh();
+        return;
+      }
+
+      if (!response.ok || !result.group) {
+        throw new Error(result.error ?? "Failed to create group.");
+      }
+
+      setGroups((current) => {
+        const next = current.some((group) => group.id === result.group!.id)
+          ? current
+          : [...current, result.group!];
+        return [...next].sort((a, b) => a.name.localeCompare(b.name));
+      });
+
+      setSelectedGroupIds((current) =>
+        current.includes(result.group!.id)
+          ? current
+          : [...current, result.group!.id],
+      );
+      setNewGroupName("");
+    } catch (createError) {
+      const message =
+        createError instanceof Error ? createError.message : "Unknown error.";
+      setError(message);
+    } finally {
+      setIsCreatingGroup(false);
+    }
+  }
 
   function updatePhrase(index: number, value: string) {
     setInvalidPhraseIndexes((current) =>
@@ -157,7 +249,11 @@ export default function NewCardsClient({ initialTargetLanguage }: Props) {
         const response = await fetch("/api/cards/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phrases: batch, targetLanguage }),
+          body: JSON.stringify({
+            phrases: batch,
+            targetLanguage,
+            groupIds: selectedGroupIds,
+          }),
         });
 
         let result: { error?: string } = {};
@@ -226,6 +322,57 @@ export default function NewCardsClient({ initialTargetLanguage }: Props) {
             placeholder="e.g. Russian"
           />
         </label>
+
+        <div className="mt-5 rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-900/40">
+          <p className="text-sm font-medium">Groups for this batch</p>
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            If none selected, cards stay in unsorted (`all`).
+          </p>
+
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {groups.map((group) => (
+              <label
+                key={group.id}
+                className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedGroupIds.includes(group.id)}
+                  onChange={() => toggleGroup(group.id)}
+                />
+                <span className="truncate">
+                  {group.name}{" "}
+                  <span className="text-zinc-500 dark:text-zinc-400">
+                    ({group.cardCount})
+                  </span>
+                </span>
+              </label>
+            ))}
+
+            {groups.length === 0 ? (
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                No custom groups yet.
+              </p>
+            ) : null}
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <input
+              value={newGroupName}
+              onChange={(event) => setNewGroupName(event.target.value)}
+              className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-500 dark:border-zinc-600 dark:bg-zinc-900 dark:focus:border-zinc-400 sm:max-w-xs"
+              placeholder="New group name"
+            />
+            <button
+              type="button"
+              onClick={() => void createGroupInline()}
+              disabled={isCreatingGroup}
+              className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-600 dark:hover:bg-zinc-800"
+            >
+              {isCreatingGroup ? "Creating..." : "Create group"}
+            </button>
+          </div>
+        </div>
 
         <div className="mt-5 space-y-2">
           {phrases.map((value, index) => (

@@ -14,6 +14,7 @@ const GENERATION_BATCH_SIZE = 50;
 const schema = z.object({
   targetLanguage: z.string().trim().min(2).max(60),
   phrases: z.array(z.string().trim().min(1).max(160)).min(1).max(1000),
+  groupIds: z.array(z.number().int().positive()).max(100).optional(),
 });
 
 function chunkArray<T>(items: T[], chunkSize: number) {
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     const json = await request.json();
-    const { phrases, targetLanguage } = schema.parse(json);
+    const { phrases, targetLanguage, groupIds = [] } = schema.parse(json);
 
     const phraseBatches = chunkArray(phrases, GENERATION_BATCH_SIZE);
     let totalGenerated = 0;
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
         targetLanguage,
       );
 
-      await createCards(user.id, generatedCards);
+      await createCards(user.id, generatedCards, groupIds);
       totalGenerated += generatedCards.length;
     }
 
