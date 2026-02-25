@@ -221,8 +221,16 @@ export default function CardsClient({
       onWritingInputChange: handleWritingInputChange,
       onCheck: () => setWritingChecked(true),
       onNext: goToNextWritingCard,
+      onRegenerateExamples: (cardId) => {
+        void regenerateExamples(cardId);
+      },
     }),
-    [handleWritingInputChange, setWritingChecked, goToNextWritingCard],
+    [
+      handleWritingInputChange,
+      setWritingChecked,
+      goToNextWritingCard,
+      regenerateExamples,
+    ],
   );
 
   const listModeHandlers = useMemo<ListModeHandlers>(
@@ -332,6 +340,7 @@ export default function CardsClient({
               writingChecked={writingChecked}
               writingInput={writingInput}
               isWritingCorrect={isWritingCorrect}
+              regeneratingCardId={regeneratingCardId}
               writingInputRef={writingInputRef}
               handlers={writingModeHandlers}
             />

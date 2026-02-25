@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { Card } from "@/types/domain";
 
 const sectionTitleClass = "font-semibold";
@@ -8,19 +9,25 @@ const regenerateButtonClass =
 type Props = {
   card: Card;
   showPhrase?: boolean;
+  phraseNode?: ReactNode;
   regeneratingCardId: number | null;
   onRegenerateExamples: (cardId: number) => void;
+  transformExample?: (example: string, card: Card) => string;
 };
 
 export default function CardDetailsPresenter({
   card,
   showPhrase = true,
+  phraseNode,
   regeneratingCardId,
   onRegenerateExamples,
+  transformExample,
 }: Props) {
   return (
     <div className="space-y-3">
-      {showPhrase ? (
+      {phraseNode ? (
+        phraseNode
+      ) : showPhrase ? (
         <h2 className="text-2xl font-semibold break-words md:text-3xl">
           {card.phrase}
         </h2>
@@ -41,7 +48,9 @@ export default function CardDetailsPresenter({
         {card.examples_en.length > 0 ? (
           <ul className="mt-1 list-disc space-y-1 pl-5">
             {card.examples_en.map((example, exampleIndex) => (
-              <li key={`${card.id}-example-${exampleIndex}`}>{example}</li>
+              <li key={`${card.id}-example-${exampleIndex}`}>
+                {transformExample ? transformExample(example, card) : example}
+              </li>
             ))}
           </ul>
         ) : (

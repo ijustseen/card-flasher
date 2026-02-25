@@ -1,8 +1,11 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, PenLine } from "lucide-react";
 import type { RefObject } from "react";
 import type { WritingModeHandlers } from "@/app/cards/contracts";
+import CardDetailsPresenter from "@/app/cards/components/card-details-presenter";
+import StudyModeCard from "@/app/cards/components/study-mode-card";
 import {
   buildWritingSegments,
+  maskPhraseInExample,
   getWritingToneClass,
 } from "@/app/cards/cards-client-utils";
 import type { Card } from "@/types/domain";
@@ -22,6 +25,7 @@ type Props = {
   writingChecked: boolean;
   writingInput: string;
   isWritingCorrect: boolean;
+  regeneratingCardId: number | null;
   writingInputRef: RefObject<HTMLInputElement | null>;
   handlers: WritingModeHandlers;
 };
@@ -32,79 +36,75 @@ export default function WritingModePanel({
   writingChecked,
   writingInput,
   isWritingCorrect,
+  regeneratingCardId,
   writingInputRef,
   handlers,
 }: Props) {
+  const phraseInputNode = writingChecked ? (
+    <div className="w-full rounded-xl border border-zinc-300 bg-zinc-100 px-3 py-[11px] text-lg font-mono leading-8 dark:border-zinc-600 dark:bg-zinc-950">
+      <div>
+        {buildWritingSegments(writingCard?.phrase ?? "", writingInput).map(
+          (segment, segmentIndex) => (
+            <span
+              key={`segment-${segmentIndex}`}
+              className={getWritingToneClass(segment.tone)}
+            >
+              {segment.char}
+            </span>
+          ),
+        )}
+      </div>
+      {isWritingCorrect ? (
+        <p className="mt-2 text-sm leading-6 font-semibold text-emerald-700">
+          Perfect match ✅
+        </p>
+      ) : (
+        <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
+          <span className="font-semibold">Correct answer:</span>{" "}
+          {writingCard?.phrase}
+        </p>
+      )}
+    </div>
+  ) : (
+    <input
+      ref={writingInputRef}
+      value={writingInput}
+      onChange={(event) => handlers.onWritingInputChange(event.target.value)}
+      spellCheck={false}
+      autoCorrect="off"
+      autoCapitalize="none"
+      className={textInputClass}
+      placeholder="Write phrase exactly"
+    />
+  );
+
   return (
     <div className="flex flex-col gap-3">
-      <article className="overflow-auto rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 md:p-8">
-        {studyCards.length === 0 ? (
+      {studyCards.length === 0 ? (
+        <article className="overflow-auto rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 md:p-8">
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             No cards match selected groups.
           </p>
-        ) : null}
+        </article>
+      ) : null}
 
-        {studyCards.length > 0 ? (
-          <div className="space-y-4">
-            <div className="text-sm">
-              <p>
-                <span className="font-semibold">Translation:</span>{" "}
-                {writingCard?.translation}
-              </p>
-              <p className="mt-2">
-                <span className="font-semibold">Description:</span>{" "}
-                {writingCard?.description_en}
-              </p>
-            </div>
-
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium">
-                Type the exact phrase
-              </span>
-              {writingChecked ? (
-                <div className="w-full rounded-xl border border-zinc-300 bg-zinc-100 px-3 py-[11px] text-lg font-mono leading-8 dark:border-zinc-600 dark:bg-zinc-950">
-                  <div>
-                    {buildWritingSegments(
-                      writingCard?.phrase ?? "",
-                      writingInput,
-                    ).map((segment, segmentIndex) => (
-                      <span
-                        key={`segment-${segmentIndex}`}
-                        className={getWritingToneClass(segment.tone)}
-                      >
-                        {segment.char}
-                      </span>
-                    ))}
-                  </div>
-                  {isWritingCorrect ? (
-                    <p className="mt-2 text-sm leading-6 font-semibold text-emerald-700">
-                      Perfect match ✅
-                    </p>
-                  ) : (
-                    <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
-                      <span className="font-semibold">Correct answer:</span>{" "}
-                      {writingCard?.phrase}
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <input
-                  ref={writingInputRef}
-                  value={writingInput}
-                  onChange={(event) =>
-                    handlers.onWritingInputChange(event.target.value)
-                  }
-                  spellCheck={false}
-                  autoCorrect="off"
-                  autoCapitalize="none"
-                  className={textInputClass}
-                  placeholder="Write phrase exactly"
-                />
-              )}
-            </label>
-          </div>
-        ) : null}
-      </article>
+      {studyCards.length > 0 && writingCard ? (
+        <StudyModeCard
+          label="Type the exact phrase"
+          icon={<PenLine size={14} />}
+        >
+          <CardDetailsPresenter
+            card={writingCard}
+            showPhrase={false}
+            phraseNode={phraseInputNode}
+            regeneratingCardId={regeneratingCardId}
+            onRegenerateExamples={handlers.onRegenerateExamples}
+            transformExample={(example, card) =>
+              maskPhraseInExample(example, card.phrase)
+            }
+          />
+        </StudyModeCard>
+      ) : null}
 
       {studyCards.length > 0 ? (
         <>

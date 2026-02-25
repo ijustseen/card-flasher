@@ -3,6 +3,7 @@ import type {
   CardDetailsRenderer,
   RandomModeHandlers,
 } from "@/app/cards/contracts";
+import StudyModeCard from "@/app/cards/components/study-mode-card";
 import type { Card } from "@/types/domain";
 
 const secondaryActionButtonClass =
@@ -38,29 +39,23 @@ export default function RandomModePanel({
 
       {studyCards.length > 0 ? (
         <>
-          <article
-            className="cursor-pointer overflow-auto rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900 md:p-8"
-            onClick={handlers.onToggleReveal}
+          <StudyModeCard
+            label="Tap card to reveal"
+            icon={<Hand size={14} />}
+            onCardClick={handlers.onToggleReveal}
           >
-            <div className="space-y-4">
-              <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                <Hand size={14} />
-                Tap card to reveal
+            <h2 className="text-2xl font-semibold break-words md:text-3xl">
+              {activeCard?.phrase}
+            </h2>
+
+            {activeCard && revealed ? (
+              renderCardDetails(activeCard, { showPhrase: false })
+            ) : (
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                Press Reveal to show translation and explanation.
               </p>
-
-              <h2 className="text-2xl font-semibold break-words md:text-3xl">
-                {activeCard?.phrase}
-              </h2>
-
-              {activeCard && revealed ? (
-                renderCardDetails(activeCard, { showPhrase: false })
-              ) : (
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                  Press Reveal to show translation and explanation.
-                </p>
-              )}
-            </div>
-          </article>
+            )}
+          </StudyModeCard>
 
           <div className="flex flex-wrap gap-2">
             <button

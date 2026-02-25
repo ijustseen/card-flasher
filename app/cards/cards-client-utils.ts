@@ -173,3 +173,53 @@ export function splitFilteredCards(filteredCards: Card[], groups: Group[]) {
 
   return { unsortedFilteredCards, groupedFilteredCards };
 }
+
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function getWordFormPattern(word: string) {
+  const lowerWord = word.toLocaleLowerCase();
+  const escapedWord = escapeRegex(lowerWord);
+
+  if (lowerWord.endsWith("y") && lowerWord.length > 2) {
+    const stem = escapeRegex(lowerWord.slice(0, -1));
+    return `(?:${escapedWord}|${stem}ies|${escapedWord}s|${escapedWord}ed|${escapedWord}ing)`;
+  }
+
+  if (lowerWord.endsWith("e") && lowerWord.length > 2) {
+    const stem = escapeRegex(lowerWord.slice(0, -1));
+    return `(?:${escapedWord}|${escapedWord}s|${stem}ed|${stem}ing)`;
+  }
+
+  return `${escapedWord}(?:s|es|ed|ing)?`;
+}
+
+export function maskPhraseInExample(example: string, phrase: string) {
+  const normalizedPhrase = phrase.trim();
+
+  if (!normalizedPhrase) {
+    return example;
+  }
+
+  let masked = example.replace(
+    new RegExp(escapeRegex(normalizedPhrase), "gi"),
+    "______",
+  );
+
+  const words = Array.from(
+    new Set(
+      normalizedPhrase
+        .toLocaleLowerCase()
+        .match(/[\p{L}\p{N}']+/gu)
+        ?.filter((word) => word.length > 1) ?? [],
+    ),
+  );
+
+  for (const word of words) {
+    const pattern = new RegExp(`\\b${getWordFormPattern(word)}\\b`, "giu");
+    masked = masked.replace(pattern, "______");
+  }
+
+  return masked;
+}

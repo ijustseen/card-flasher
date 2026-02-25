@@ -19,6 +19,7 @@ export type WritingModeHandlers = {
   onWritingInputChange: (value: string) => void;
   onCheck: () => void;
   onNext: () => void;
+  onRegenerateExamples: (cardId: number) => void;
 };
 
 export type ListBulkAction =
