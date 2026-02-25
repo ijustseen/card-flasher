@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { z } from "zod";
 import { verifyPassword } from "@/lib/auth";
+import { jsonError, jsonOk } from "@/lib/api-route";
 import {
   attachSessionCookie,
   createSession,
@@ -22,29 +22,23 @@ export async function POST(request: Request) {
     const user = await getUserByEmail(email);
 
     if (!user) {
-      return NextResponse.json(
-        { error: "Invalid credentials." },
-        { status: 401 },
-      );
+      return jsonError("Invalid credentials.", 401);
     }
 
     const isValid = await verifyPassword(password, user.password_hash);
 
     if (!isValid) {
-      return NextResponse.json(
-        { error: "Invalid credentials." },
-        { status: 401 },
-      );
+      return jsonError("Invalid credentials.", 401);
     }
 
     const session = await createSession(user.id);
-    const response = NextResponse.json({ ok: true });
+    const response = jsonOk();
 
     attachSessionCookie(response, session.token, session.expiresAt);
 
     return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to login.";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return jsonError(message, 400);
   }
 }

@@ -5,15 +5,11 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Check, PenLine, Plus, X } from "lucide-react";
 import AppToast from "@/components/app-toast";
+import { readJsonSafe } from "@/lib/client-http";
+import type { Group } from "@/types/domain";
 
 type Props = {
   initialTargetLanguage: string;
-};
-
-type Group = {
-  id: number;
-  name: string;
-  cardCount: number;
 };
 
 export default function NewCardsClient({ initialTargetLanguage }: Props) {
@@ -45,15 +41,15 @@ export default function NewCardsClient({ initialTargetLanguage }: Props) {
           fetch("/api/groups", { cache: "no-store" }),
         ]);
 
-        const cardsResult = (await cardsResponse.json()) as {
+        const cardsResult = await readJsonSafe<{
           error?: string;
           cards?: Array<{ phrase: string }>;
-        };
+        }>(cardsResponse, {});
 
-        const groupsResult = (await groupsResponse.json()) as {
+        const groupsResult = await readJsonSafe<{
           error?: string;
           groups?: Group[];
-        };
+        }>(groupsResponse, {});
 
         if (cardsResponse.status === 401 || groupsResponse.status === 401) {
           router.push("/login");
@@ -112,10 +108,10 @@ export default function NewCardsClient({ initialTargetLanguage }: Props) {
         body: JSON.stringify({ name }),
       });
 
-      const result = (await response.json()) as {
+      const result = await readJsonSafe<{
         error?: string;
         group?: Group;
-      };
+      }>(response, {});
 
       if (response.status === 401) {
         router.push("/login");
@@ -256,13 +252,7 @@ export default function NewCardsClient({ initialTargetLanguage }: Props) {
           }),
         });
 
-        let result: { error?: string } = {};
-
-        try {
-          result = (await response.json()) as { error?: string };
-        } catch {
-          result = {};
-        }
+        const result = await readJsonSafe<{ error?: string }>(response, {});
 
         if (response.status === 401) {
           router.push("/login");

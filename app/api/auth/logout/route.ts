@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { jsonError, jsonOk } from "@/lib/api-route";
 import {
   clearSessionCookie,
   deleteSession,
@@ -8,14 +9,20 @@ import {
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
-  const token = getSessionTokenFromRequest(request);
+  try {
+    const token = getSessionTokenFromRequest(request);
 
-  if (token) {
-    await deleteSession(token);
+    if (token) {
+      await deleteSession(token);
+    }
+
+    const response = jsonOk();
+    clearSessionCookie(response);
+
+    return response;
+  } catch {
+    const response = jsonError("Failed to logout.", 500);
+    clearSessionCookie(response);
+    return response;
   }
-
-  const response = NextResponse.json({ ok: true });
-  clearSessionCookie(response);
-
-  return response;
 }

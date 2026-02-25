@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import AppToast from "@/components/app-toast";
+import { readJsonSafe } from "@/lib/client-http";
 
 type Mode = "login" | "register";
 
@@ -29,7 +30,7 @@ export default function LoginClient() {
         body: JSON.stringify({ email, password }),
       });
 
-      const result = (await response.json()) as { error?: string };
+      const result = await readJsonSafe<{ error?: string }>(response, {});
 
       if (!response.ok) {
         throw new Error(result.error ?? "Request failed.");

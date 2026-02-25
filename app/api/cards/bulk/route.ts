@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { jsonError, requireUser } from "@/lib/api-route";
 import { generateCardsFromPhrases } from "@/lib/google-ai";
 import {
   addCardsToGroup,
   deleteUserCards,
-  getSessionTokenFromRequest,
-  getUserBySessionToken,
   getUserCardsByIds,
   moveCardsToGroup,
   removeCardsFromGroup,
@@ -42,29 +41,23 @@ const schema = z.discriminatedUnion("action", [
 ]);
 
 export async function POST(request: NextRequest) {
-  const token = getSessionTokenFromRequest(request);
+  const auth = await requireUser(request);
 
-  if (!token) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const user = await getUserBySessionToken(token);
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if ("response" in auth) {
+    return auth.response;
   }
 
   try {
     const input = schema.parse(await request.json());
 
     if (input.action === "delete") {
-      const count = await deleteUserCards(user.id, input.cardIds);
+      const count = await deleteUserCards(auth.user.id, input.cardIds);
       return NextResponse.json({ count });
     }
 
     if (input.action === "addToGroup") {
       const count = await addCardsToGroup(
-        user.id,
+        auth.user.id,
         input.cardIds,
         input.groupId,
       );
@@ -73,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     if (input.action === "removeFromGroup") {
       const count = await removeCardsFromGroup(
-        user.id,
+        auth.user.id,
         input.cardIds,
         input.groupId,
       );
@@ -82,14 +75,14 @@ export async function POST(request: NextRequest) {
 
     if (input.action === "moveToGroup") {
       const count = await moveCardsToGroup(
-        user.id,
+        auth.user.id,
         input.cardIds,
         input.groupId,
       );
       return NextResponse.json({ count });
     }
 
-    const cards = await getUserCardsByIds(user.id, input.cardIds);
+    const cards = await getUserCardsByIds(auth.user.id, input.cardIds);
     let count = 0;
 
     for (const card of cards) {
@@ -103,7 +96,7 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      await updateUserCardContent(user.id, card.id, next);
+      await updateUserCardContent(auth.user.id, card.id, next);
       count += 1;
     }
 
@@ -111,6 +104,6 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to process bulk action.";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return jsonError(message, 400);
   }
 }
