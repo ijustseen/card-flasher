@@ -5,7 +5,6 @@ import type { Group } from "@/types/domain";
 
 type Props = {
   userEmail: string;
-  initialTargetLanguage: string;
   mode: CardsMode;
   cardsCount: number;
   studyGroupFilter: string;
@@ -32,7 +31,6 @@ function getModeButtonClass(isActive: boolean) {
 
 export default function CardsTopBar({
   userEmail,
-  initialTargetLanguage,
   mode,
   cardsCount,
   studyGroupFilter,
@@ -49,7 +47,7 @@ export default function CardsTopBar({
               Card Flasher
             </h1>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              {userEmail} · Target: {initialTargetLanguage}
+              {userEmail} · Cards: {cardsCount}
             </p>
           </div>
 
@@ -109,7 +107,7 @@ export default function CardsTopBar({
               className={groupFilterSelectClass}
             >
               <option value="allGroups">All groups</option>
-              <option value="unsorted">all (unsorted)</option>
+              <option value="unsorted">unsorted</option>
               {groups.map((group) => (
                 <option key={`study-group-select-${group.id}`} value={group.id}>
                   {group.name}

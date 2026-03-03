@@ -290,7 +290,6 @@ export default function CardsClient({
       <section className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 md:h-full md:overflow-hidden">
         <CardsTopBar
           userEmail={userEmail}
-          initialTargetLanguage={initialTargetLanguage}
           mode={mode}
           cardsCount={cards.length}
           studyGroupFilter={studyGroupFilter}

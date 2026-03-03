@@ -280,7 +280,7 @@ export default function NewCardsClient({ initialTargetLanguage }: Props) {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-zinc-50 to-zinc-100 p-4 text-zinc-900 dark:from-zinc-950 dark:to-zinc-900 dark:text-zinc-100 md:p-8">
+    <main className="min-h-screen p-4 text-zinc-900 dark:text-zinc-100 md:p-8">
       <section className="mx-auto w-full max-w-3xl rounded-2xl border border-zinc-200 bg-white/90 p-5 shadow-sm backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/90 md:p-8">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h1 className="flex items-center gap-2 text-2xl font-semibold">
@@ -316,7 +316,7 @@ export default function NewCardsClient({ initialTargetLanguage }: Props) {
         <div className="mt-5 rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-900/40">
           <p className="text-sm font-medium">Groups for this batch</p>
           <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-            If none selected, cards stay in unsorted (`all`).
+            If none selected, cards stay in unsorted.
           </p>
 
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
