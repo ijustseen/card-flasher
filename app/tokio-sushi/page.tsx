@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 
-const TOKIO_MENU_URL = "https://tokiosushi.rs/";
+const TOKIO_MENU_URLS = [
+  "https://tokiosushi.rs/section:tokio-menu",
+  "https://tokiosushi.rs/",
+] as const;
 
 type MenuCard = {
   name: string;
@@ -144,39 +147,37 @@ function parseJsonLdScripts(html: string): MenuCard[] {
 }
 
 async function loadMenuCards(): Promise<{ cards: MenuCard[]; error?: string }> {
-  try {
-    const response = await fetch(TOKIO_MENU_URL, {
-      next: { revalidate: 60 * 60 * 12 },
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; CardFlasher/1.0; +https://tokiosushi.rs)",
-      },
-    });
+  let lastError = "Не удалось подключиться к сайту Tokio Sushi.";
 
-    if (!response.ok) {
-      return {
-        cards: [],
-        error: `Не удалось загрузить меню (HTTP ${response.status}).`,
-      };
+  for (const menuUrl of TOKIO_MENU_URLS) {
+    try {
+      const response = await fetch(menuUrl, {
+        next: { revalidate: 60 * 60 * 12 },
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (compatible; CardFlasher/1.0; +https://tokiosushi.rs)",
+        },
+      });
+
+      if (!response.ok) {
+        lastError = `Не удалось загрузить меню (HTTP ${response.status}).`;
+        continue;
+      }
+
+      const html = await response.text();
+      const cards = parseJsonLdScripts(html);
+
+      if (cards.length > 0) {
+        return { cards };
+      }
+
+      lastError = "Меню загружено, но карточки не удалось извлечь автоматически.";
+    } catch {
+      lastError = "Не удалось подключиться к сайту Tokio Sushi.";
     }
-
-    const html = await response.text();
-    const cards = parseJsonLdScripts(html);
-
-    if (cards.length === 0) {
-      return {
-        cards: [],
-        error: "Меню загружено, но карточки не удалось извлечь автоматически.",
-      };
-    }
-
-    return { cards };
-  } catch {
-    return {
-      cards: [],
-      error: "Не удалось подключиться к сайту Tokio Sushi.",
-    };
   }
+
+  return { cards: [], error: lastError };
 }
 
 export default async function TokioSushiPage() {
@@ -203,7 +204,8 @@ export default async function TokioSushiPage() {
 
         {cards.length === 0 ? (
           <div className="rounded-xl border border-dashed border-neutral-300 bg-white p-8 text-center text-neutral-600">
-            Пока нет карточек. Проверь доступ к {TOKIO_MENU_URL}
+            Пока нет карточек. Проверь доступ к {TOKIO_MENU_URLS[0]} и{" "}
+            {TOKIO_MENU_URLS[1]}.
           </div>
         ) : (
           <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
